@@ -28,3 +28,5 @@ def articles_with_comments(request):
         })
 
     return JsonResponse(data, safe=False)
+
+# این بخش صرفا جهت تسته!!
