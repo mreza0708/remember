@@ -1,5 +1,3 @@
-# .github/workflows/django.yml
-
 name: Django CI
 
 on:
@@ -28,6 +26,14 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    env:
+      # متغیرهای اتصال به دیتابیس برای Django
+      DATABASE_NAME: devops_db
+      DATABASE_USER: user
+      DATABASE_PASSWORD: pass
+      DATABASE_HOST: localhost
+      DATABASE_PORT: 5432
+
     steps:
       - uses: actions/checkout@v3
 
@@ -40,9 +46,22 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run Migrations
+        env:
+          # اینجا هم متغیرهای دیتابیس رو می‌تونی بده اگر نیاز هست
+          DATABASE_NAME: devops_db
+          DATABASE_USER: user
+          DATABASE_PASSWORD: pass
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
         run: python manage.py migrate
 
       - name: Run Tests
+        env:
+          DATABASE_NAME: devops_db
+          DATABASE_USER: user
+          DATABASE_PASSWORD: pass
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
         run: python manage.py test
 
       - name: Set up Docker Buildx
