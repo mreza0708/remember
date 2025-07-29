@@ -1,4 +1,3 @@
-# Dockerfile
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -11,5 +10,6 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . .
 
-CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000"]
 RUN python manage.py collectstatic --noinput
+
+CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000"]

@@ -1,52 +1,61 @@
-version: '3.9'
+name: Django CI
 
-services:
-  db:
-    image: postgres:15
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    environment:
-      POSTGRES_DB: mydatabase
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-    ports:
-      - "5432:5432"
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
-  redis:
-    image: redis:7
-    ports:
-      - "6379:6379"
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.10, 3.11]  # 🔁 فقط نسخه‌های معتبر
 
-  web:
-    build: .
-    command: python manage.py runserver 0.0.0.0:8000
-    volumes:
-      - .:/app
-    ports:
-      - "8000:8000"
-    depends_on:
-      - db
-      - redis
-    environment:
-      - DATABASE_HOST=db
-      - DATABASE_NAME=mydatabase
-      - DATABASE_USER=myuser
-      - DATABASE_PASSWORD=mypassword
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: devops_db
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
-  celery:
-    build: .
-    command: celery -A core worker --loglevel=info
-    volumes:
-      - .:/app
-    depends_on:
-      - web
-      - redis
-    environment:
-      - DATABASE_HOST=db
-      - DATABASE_NAME=mydatabase
-      - DATABASE_USER=myuser
-      - DATABASE_PASSWORD=mypassword
-      - CELERY_BROKER_URL=redis://redis:6379/0
+    steps:
+      - uses: actions/checkout@v3
 
-volumes:
-  postgres_data:
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Migrations
+        run: python manage.py migrate
+
+      - name: Run Tests
+        run: python manage.py test
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image
+        run: docker build -t mrezadeveloper/my-django-app:latest .
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push Docker image
+        run: docker push mrezadeveloper/my-django-app:latest
